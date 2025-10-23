@@ -1,0 +1,26 @@
+# Unified Markdown to PDF Converter Dependencies
+# Core dependencies for converting markdown with Mermaid diagrams to PDF
+
+# Playwright for browser automation and Mermaid rendering
+playwright>=1.40.0
+
+# Standard library modules (included with Python 3.7+)
+# asyncio - for asynchronous operations
+# subprocess - for running external commands (pandoc, latex)
+# argparse - for command-line argument parsing
+# re - for regex operations
+# tempfile - for temporary file management
+# uuid - for unique identifier generation
+# shutil - for file operations
+# platform - for system detection
+# typing - for type hints
+# os - for operating system interface
+# sys - for system-specific parameters
+# glob - for file pattern matching
+
+# Note: This tool also requires system dependencies that must be installed separately:
+# - pandoc (required) - for markdown to PDF conversion
+# - xelatex, lualatex, or pdflatex (at least one required) - for PDF generation
+# - chromium (installed automatically by playwright) - for Mermaid rendering
+#
+# See README.md for detailed installation instructions for system dependencies

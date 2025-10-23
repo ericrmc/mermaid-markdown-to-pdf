@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  markdown-converter:
+    build: .
+    image: markdown-pdf-converter:latest
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    # Override entrypoint for interactive use
+    # entrypoint: ["/bin/bash"]
+    # stdin_open: true
+    # tty: true
+
+# Usage examples:
+# 
+# Build and run:
+#   docker-compose build
+#   docker-compose run --rm markdown-converter README.md
+#
+# Process multiple files:
+#   docker-compose run --rm markdown-converter *.md
+#
+# Process folder:
+#   docker-compose run --rm markdown-converter --folder docs/
+#
+# Interactive shell:
+#   docker-compose run --rm --entrypoint /bin/bash markdown-converter

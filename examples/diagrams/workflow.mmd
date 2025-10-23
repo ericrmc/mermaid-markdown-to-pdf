@@ -1,0 +1,14 @@
+graph LR
+    A[User Request] --> B{Authenticated?}
+    B -->|No| C[Login Page]
+    C --> D[Validate Credentials]
+    D -->|Invalid| C
+    D -->|Valid| E[Create Session]
+    B -->|Yes| F[Process Request]
+    E --> F
+    F --> G{Authorized?}
+    G -->|No| H[Access Denied]
+    G -->|Yes| I[Execute Action]
+    I --> J[Return Response]
+    H --> J
+    J --> K[End]

@@ -1,0 +1,26 @@
+graph TB
+    subgraph "Frontend"
+        UI[User Interface]
+        WebApp[Web Application]
+    end
+    
+    subgraph "Backend"
+        API[API Gateway]
+        Auth[Authentication Service]
+        Business[Business Logic]
+    end
+    
+    subgraph "Data Layer"
+        Cache[(Redis Cache)]
+        DB[(PostgreSQL Database)]
+        Storage[File Storage]
+    end
+    
+    UI --> WebApp
+    WebApp --> API
+    API --> Auth
+    API --> Business
+    Business --> Cache
+    Business --> DB
+    Business --> Storage
+    Cache -.-> DB
