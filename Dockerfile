@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y \
     # Additional packages for better PDF output
     texlive-pictures \
     texlive-science \
+    # SVG support for LaTeX (optional fallback)
+    librsvg2-bin \
     # Clean up to reduce image size
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

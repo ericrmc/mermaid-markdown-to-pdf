@@ -17,7 +17,7 @@ Contains all the fundamental functionality for converting Markdown files with Me
 
 **Key Functions:**
 - `convert_markdown_to_pdf()` - Main conversion orchestrator
-- `mermaid_to_image()` - Render Mermaid code to PNG
+- `mermaid_to_svg()` - Render Mermaid code to SVG (vector format)
 - `extract_mermaid_blocks()` - Find inline Mermaid diagrams
 - `detect_mmd_file_references()` - Find external `.mmd` file references
 - `generate_pdf_from_markdown()` - Create PDF using Pandoc

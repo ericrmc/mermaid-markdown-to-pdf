@@ -161,8 +161,8 @@ def check_dependencies_or_exit() -> Dict[str, Dict[str, str]]:
     
     return dependencies
 
-async def mermaid_to_image(mermaid_code, output_path, width=1200, height=800):
-    """Convert Mermaid code to PNG image"""
+async def mermaid_to_svg(mermaid_code, output_path, width=1200, height=800):
+    """Convert Mermaid code to SVG (vector format) and optionally to PDF"""
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page(viewport={'width': width, 'height': height})
@@ -195,9 +195,23 @@ async def mermaid_to_image(mermaid_code, output_path, width=1200, height=800):
         await page.set_content(html_content)
         await page.wait_for_selector('.mermaid svg', timeout=10000)
         
-        # Get the SVG element and take screenshot
+        # Extract SVG content directly (preserves vector data)
         svg_element = await page.query_selector('.mermaid svg')
-        await svg_element.screenshot(path=output_path)
+        svg_content = await svg_element.evaluate('(element) => element.outerHTML')
+        
+        # Write SVG to file
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(svg_content)
+        
+        # Also create a PDF version for better LaTeX compatibility
+        # This preserves vector data while being more compatible
+        pdf_path = output_path.replace('.svg', '.pdf')
+        try:
+            await page.pdf(path=pdf_path, format='A4', print_background=True)
+        except Exception as e:
+            # PDF generation might fail in some environments, that's ok
+            # We'll fall back to SVG
+            pass
         
         await browser.close()
 
@@ -307,23 +321,29 @@ async def render_unified_mermaid_diagrams(inline_blocks: List[Tuple[str, str]],
                                         width: int = 1200, height: int = 800) -> Dict[str, str]:
     """
     Unified rendering function for both inline and external Mermaid diagrams.
-    Generates unique image filenames to avoid conflicts and processes all diagrams in a single workflow.
+    Generates vector format (PDF preferred, SVG fallback) for high-quality output.
     """
     image_mappings = {}
     total_diagrams = len(inline_blocks) + len(external_contents)
     processed_count = 0
     
-    print(f"Processing {total_diagrams} Mermaid diagram(s) ({len(inline_blocks)} inline, {len(external_contents)} external) at {width}x{height}...")
+    print(f"Processing {total_diagrams} Mermaid diagram(s) ({len(inline_blocks)} inline, {len(external_contents)} external) as vector format...")
     
     # Process inline Mermaid blocks
     for block_content, unique_id in inline_blocks:
-        png_filename = f"{unique_id}.png"
+        svg_filename = f"{unique_id}.svg"
+        pdf_filename = f"{unique_id}.pdf"
         
         try:
-            await mermaid_to_image(block_content, png_filename, width, height)
-            image_mappings[unique_id] = png_filename
+            await mermaid_to_svg(block_content, svg_filename, width, height)
+            # Prefer PDF if it was generated (better LaTeX compatibility)
+            if os.path.exists(pdf_filename):
+                image_mappings[unique_id] = pdf_filename
+                print(f"✓ [{processed_count + 1}/{total_diagrams}] Inline diagram: {unique_id} -> {pdf_filename} (vector PDF)")
+            else:
+                image_mappings[unique_id] = svg_filename
+                print(f"✓ [{processed_count + 1}/{total_diagrams}] Inline diagram: {unique_id} -> {svg_filename} (SVG)")
             processed_count += 1
-            print(f"✓ [{processed_count}/{total_diagrams}] Inline diagram: {unique_id} -> {png_filename}")
             
         except Exception as e:
             print(f"✗ [{processed_count + 1}/{total_diagrams}] Error processing inline diagram {unique_id}: {e}")
@@ -331,13 +351,19 @@ async def render_unified_mermaid_diagrams(inline_blocks: List[Tuple[str, str]],
     
     # Process external .mmd file contents
     for unique_id, (content, alt_text) in external_contents.items():
-        png_filename = f"{unique_id}.png"
+        svg_filename = f"{unique_id}.svg"
+        pdf_filename = f"{unique_id}.pdf"
         
         try:
-            await mermaid_to_image(content, png_filename, width, height)
-            image_mappings[unique_id] = png_filename
+            await mermaid_to_svg(content, svg_filename, width, height)
+            # Prefer PDF if it was generated (better LaTeX compatibility)
+            if os.path.exists(pdf_filename):
+                image_mappings[unique_id] = pdf_filename
+                print(f"✓ [{processed_count + 1}/{total_diagrams}] External diagram: {unique_id} -> {pdf_filename} (vector PDF)")
+            else:
+                image_mappings[unique_id] = svg_filename
+                print(f"✓ [{processed_count + 1}/{total_diagrams}] External diagram: {unique_id} -> {svg_filename} (SVG)")
             processed_count += 1
-            print(f"✓ [{processed_count}/{total_diagrams}] External diagram: {unique_id} -> {png_filename}")
             
         except Exception as e:
             print(f"✗ [{processed_count + 1}/{total_diagrams}] Error processing external diagram {unique_id}: {e}")
@@ -356,25 +382,25 @@ async def render_unified_mermaid_diagrams(inline_blocks: List[Tuple[str, str]],
 async def render_mermaid_blocks(mmd_files: Dict[str, str], width: int = 1200, height: int = 800) -> Dict[str, str]:
     """
     Legacy function for backward compatibility.
-    Render .mmd files to .png and return mapping of id -> image_path
+    Render .mmd files to .svg and return mapping of id -> image_path
     """
     image_mappings = {}
     total_files = len(mmd_files)
     processed_count = 0
     
-    print(f"Processing {total_files} Mermaid diagram(s) at {width}x{height}...")
+    print(f"Processing {total_files} Mermaid diagram(s) as vector SVG...")
     
     for unique_id, mmd_filename in mmd_files.items():
-        png_filename = f"{unique_id}.png"
+        svg_filename = f"{unique_id}.svg"
         
         try:
             with open(mmd_filename, 'r') as f:
                 mermaid_code = f.read()
             
-            await mermaid_to_image(mermaid_code, png_filename, width, height)
-            image_mappings[unique_id] = png_filename
+            await mermaid_to_svg(mermaid_code, svg_filename, width, height)
+            image_mappings[unique_id] = svg_filename
             processed_count += 1
-            print(f"✓ [{processed_count}/{total_files}] Successfully converted {mmd_filename} to {png_filename}")
+            print(f"✓ [{processed_count}/{total_files}] Successfully converted {mmd_filename} to {svg_filename}")
             
         except Exception as e:
             print(f"✗ [{processed_count + 1}/{total_files}] Error processing {mmd_filename}: {e}")
@@ -532,6 +558,8 @@ def generate_pdf_from_markdown(temp_markdown_path: str, output_pdf_path: str, ha
         
         if has_images:
             latex_packages.extend([
+                "\\usepackage{graphicx}",  # Graphics support
+                "\\usepackage{svg}",  # SVG support
                 "\\usepackage{float}",
                 "\\usepackage{placeins}",
                 "\\floatplacement{figure}{H}",
@@ -573,17 +601,23 @@ def generate_pdf_from_markdown(temp_markdown_path: str, output_pdf_path: str, ha
             cmd.extend(['--toc', '--toc-depth=3'])
         
         # Execute pandoc with fallback handling
+        print(f"Running command: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
         
         if result.returncode == 0:
             print(f"✓ Successfully generated {output_pdf_path} using {pdf_engine}")
             return True
         else:
-            print(f"✗ Error generating PDF with {pdf_engine}: {result.stderr}")
+            print(f"✗ Error generating PDF with {pdf_engine}")
+            print(f"Return code: {result.returncode}")
+            if result.stdout:
+                print(f"STDOUT:\n{result.stdout}")
+            if result.stderr:
+                print(f"STDERR:\n{result.stderr}")
             
             # Try fallback engines if the specified one failed
             if pdf_engine != 'pdflatex':
-                print(f"Attempting fallback to pdflatex...")
+                print(f"\nAttempting fallback to pdflatex...")
                 return generate_pdf_from_markdown(temp_markdown_path, output_pdf_path, 
                                                 has_images, 'pdflatex', margin, include_toc)
             
@@ -698,7 +732,19 @@ async def convert_markdown_to_pdf(input_markdown: str, output_pdf: str = None,
         # Step 4: Unified diagram processing - render both inline and external diagrams
         print("Step 4: Processing unified diagram workflow...")
         image_mappings = await render_unified_mermaid_diagrams(mermaid_blocks, mmd_contents, image_width, image_height)
-        temp_files_to_cleanup.extend(image_mappings.values())
+        
+        # Add both the used files and their counterparts to cleanup
+        for unique_id, image_path in image_mappings.items():
+            temp_files_to_cleanup.append(image_path)
+            # Also cleanup the alternate format if it exists
+            if image_path.endswith('.pdf'):
+                svg_path = image_path.replace('.pdf', '.svg')
+                if os.path.exists(svg_path):
+                    temp_files_to_cleanup.append(svg_path)
+            elif image_path.endswith('.svg'):
+                pdf_path = image_path.replace('.svg', '.pdf')
+                if os.path.exists(pdf_path):
+                    temp_files_to_cleanup.append(pdf_path)
         
         if not image_mappings:
             raise Exception("Failed to render any Mermaid diagrams - check syntax and dependencies")
@@ -727,6 +773,9 @@ async def convert_markdown_to_pdf(input_markdown: str, output_pdf: str = None,
     
     except Exception as e:
         print(f"\n✗ Error during conversion: {e}")
+        import traceback
+        print("\nFull traceback:")
+        traceback.print_exc()
         raise
     
     finally:
@@ -755,7 +804,7 @@ async def process_all_mmd_files():
             with open(mmd_file, 'r') as f:
                 mermaid_code = f.read()
             
-            await mermaid_to_image(mermaid_code, output_file)
+            await mermaid_to_svg(mermaid_code, output_file)
             processed_files.append((mmd_file, output_file))
             print(f"✓ Successfully converted {mmd_file} to {output_file}")
             
@@ -918,7 +967,7 @@ async def main():
         with open(input_file, 'r') as f:
             mermaid_code = f.read()
         
-        await mermaid_to_image(mermaid_code, output_file, args.image_width, args.image_height)
+        await mermaid_to_svg(mermaid_code, output_file, args.image_width, args.image_height)
         print(f"Successfully converted {input_file} to {output_file}")
         
     elif args.legacy:

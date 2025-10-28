@@ -16,7 +16,7 @@ from typing import List, Tuple, Dict, Optional
 # Import all functions from the converter module
 from converter import (
     validate_dependencies, get_available_pdf_engine, print_dependency_status,
-    check_dependencies_or_exit, mermaid_to_image, extract_mermaid_blocks,
+    check_dependencies_or_exit, mermaid_to_svg, extract_mermaid_blocks,
     detect_mmd_file_references, resolve_mmd_file_path, read_mmd_files,
     create_temp_mermaid_files, create_temp_mmd_files_for_external,
     render_unified_mermaid_diagrams, render_mermaid_blocks,
@@ -252,7 +252,7 @@ Container Usage:
         with open(input_file, 'r') as f:
             mermaid_code = f.read()
         
-        await mermaid_to_image(mermaid_code, output_file, args.image_width, args.image_height)
+        await mermaid_to_svg(mermaid_code, output_file, args.image_width, args.image_height)
         print(f"Successfully converted {input_file} to {output_file}")
         sys.exit(0)
         
