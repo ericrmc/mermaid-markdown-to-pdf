@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  markdown-converter:
+    build: .
+    image: markdown-pdf-converter:latest
+    volumes:
+      # Mount current directory to /workspace
+      - ./:/workspace:Z
+    working_dir: /workspace
+    # Run as current user to avoid permission issues
+    userns_mode: keep-id
+    # Override entrypoint for interactive use
+    # entrypoint: ["/bin/bash"]
+    # stdin_open: true
+    # tty: true
+
+# ============================================================================
+# Installation (if needed)
+# ============================================================================
+# Install podman-compose:
+#   pip install podman-compose
+# Or on Fedora/RHEL:
+#   sudo dnf install podman-compose
+#
+# ============================================================================
+# Usage Examples (Podman Compose)
+# ============================================================================
+#
+# Build the image:
+#   podman-compose build
+#
+# Single file conversion:
+#   podman-compose run --rm markdown-converter README.md
+#
+# Multiple files:
+#   podman-compose run --rm markdown-converter doc1.md doc2.md
+#
+# Process entire folder (recursive):
+#   podman-compose run --rm markdown-converter --folder docs/
+#
+# Process folder (non-recursive):
+#   podman-compose run --rm markdown-converter --folder docs/ --no-recursive
+#
+# With custom output directory:
+#   podman-compose run --rm markdown-converter --folder docs/ --output-dir pdfs/
+#
+# Custom PDF options:
+#   podman-compose run --rm markdown-converter --engine xelatex --margin 0.5in README.md
+#
+# Custom image dimensions:
+#   podman-compose run --rm markdown-converter --image-width 1600 --image-height 1200 README.md
+#
+# Keep temporary files for debugging:
+#   podman-compose run --rm markdown-converter --folder docs/ --keep-temp
+#
+# Check dependencies:
+#   podman-compose run --rm markdown-converter --check-deps
+#
+# Interactive shell for debugging:
+#   podman-compose run --rm --entrypoint /bin/bash markdown-converter
+#
+# ============================================================================
+# Alternative: Use Podman directly (no podman-compose needed)
+# ============================================================================
+#
+# Build:
+#   podman build -t markdown-pdf-converter:latest .
+#
+# Run:
+#   podman run --rm -v ./:/workspace:Z --userns=keep-id markdown-pdf-converter:latest --folder docs/
+#
+# ============================================================================
+# Notes:
+# ============================================================================
+# - The --rm flag removes the container after execution (recommended)
+# - Files are mounted at /workspace inside the container
+# - Generated PDFs appear in the same directory as source files (unless --output-dir is used)
+# - The :Z flag on volumes enables SELinux compatibility
+# - --userns=keep-id ensures files are owned by your user, not root

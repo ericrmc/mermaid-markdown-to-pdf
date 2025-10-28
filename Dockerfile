@@ -28,7 +28,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers
+# Install Playwright browsers in the container (not in workspace)
+# Set PLAYWRIGHT_BROWSERS_PATH to ensure browsers are installed in container
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN playwright install chromium --with-deps
 
 # Copy application files

@@ -2,6 +2,8 @@
 
 A powerful, containerized tool that converts markdown files containing Mermaid diagrams to professional PDF documents. Supports both inline Mermaid code blocks and external `.mmd` file references, with batch processing capabilities.
 
+Also see https://github.com/mermaid-js/mermaid-cli for something official. Unlike the mermaid-js repo, this one also does the PDF step, and is probably more unstable, and certainly less supported.
+
 ## Disclaimer
 This code was almost entirely produced by Claude Sonnet models and may not work accurately. Use at your own risk. It's a simple utility that might help some people.
 
@@ -19,37 +21,39 @@ This code was almost entirely produced by Claude Sonnet models and may not work 
 
 ### Prerequisites
 
-- Docker installed on your system ([Get Docker](https://docs.docker.com/get-docker/))
+- **Podman** or **Docker** installed on your system
+  - Podman: [Get Podman](https://podman.io/getting-started/installation)
+  - Docker: [Get Docker](https://docs.docker.com/get-docker/)
 
-### 1. Build the Container
+### Option A: Using Makefile (Recommended - Simplest!)
 
 ```bash
-# Clone this repository
-git clone <your-repo-url>
-cd mermaid-markdown-to-pdf
+# 1. Build the container
+make build
 
-# Build the Docker image
-./build.sh
+# 2. Convert your documents
+make run FOLDER=docs/                    # Process entire folder
+make run FILE=README.md                  # Single file
+make run FOLDER=docs/ OUTPUT=pdfs/       # Custom output directory
+
+# 3. Other useful commands
+make shell                               # Interactive debugging
+make help                                # Show all commands
 ```
 
-### 2. Convert Your First Document
+### Option B: Using Podman/Docker Directly
 
 ```bash
-# Convert a single markdown file
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter README.md
+# 1. Build the container
+podman build -t markdown-pdf-converter:latest .
+# or: docker build -t markdown-pdf-converter:latest .
 
-# Convert multiple files
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter *.md
+# 2. Convert your documents
+podman run --rm -v ./:/workspace:Z --userns=keep-id \
+  markdown-pdf-converter:latest --folder docs/
 
-# Process an entire folder
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter --folder docs/
-```
-
-### 3. Create an Alias (Optional but Recommended)
-
-```bash
-# Add to your ~/.bashrc or ~/.zshrc
-alias md2pdf='docker run --rm -v $(pwd):/workspace markdown-pdf-converter'
+# 3. Create an alias for convenience
+alias md2pdf='podman run --rm -v ./:/workspace:Z --userns=keep-id markdown-pdf-converter:latest'
 
 # Then use it simply:
 md2pdf README.md
@@ -58,43 +62,65 @@ md2pdf --folder docs/
 
 ## 📖 Usage Examples
 
-### Single File Conversion
+### Using Makefile (Simplest)
+
+```bash
+# Single file
+make run FILE=document.md
+
+# Folder processing
+make run FOLDER=docs/
+
+# With custom output directory
+make run FOLDER=docs/ OUTPUT=pdfs/
+
+# Pass additional arguments
+make run FOLDER=docs/ ARGS='--keep-temp --margin 0.5in'
+
+# Check dependencies
+make run ARGS='--check-deps'
+```
+
+### Using Podman/Docker Directly
+
+#### Single File Conversion
 
 ```bash
 # Basic conversion
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter document.md
+podman run --rm -v ./:/workspace:Z --userns=keep-id \
+  markdown-pdf-converter:latest document.md
 
 # With custom output name
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter -o output.pdf document.md
+podman run --rm -v ./:/workspace:Z --userns=keep-id \
+  markdown-pdf-converter:latest -o output.pdf document.md
 
 # With custom options
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter \
+podman run --rm -v ./:/workspace:Z --userns=keep-id \
+  markdown-pdf-converter:latest \
   --engine xelatex \
   --margin 0.5in \
   --image-width 1600 \
   document.md
 ```
 
-### Batch Processing
+#### Batch Processing
 
 ```bash
 # Multiple specific files
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter \
-  intro.md guide.md reference.md
-
-# All markdown files in current directory
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter *.md
+podman run --rm -v ./:/workspace:Z --userns=keep-id \
+  markdown-pdf-converter:latest intro.md guide.md reference.md
 
 # Process folder recursively
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter --folder docs/
+podman run --rm -v ./:/workspace:Z --userns=keep-id \
+  markdown-pdf-converter:latest --folder docs/
 
 # Process folder non-recursively (only immediate directory)
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter \
-  --folder docs/ --no-recursive
+podman run --rm -v ./:/workspace:Z --userns=keep-id \
+  markdown-pdf-converter:latest --folder docs/ --no-recursive
 
 # Custom output directory
-docker run --rm -v $(pwd):/workspace markdown-pdf-converter \
-  --output-dir pdfs/ *.md
+podman run --rm -v ./:/workspace:Z --userns=keep-id \
+  markdown-pdf-converter:latest --output-dir pdfs/ --folder docs/
 ```
 
 ### Advanced Options
